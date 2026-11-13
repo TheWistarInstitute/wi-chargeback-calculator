@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Wistar Storage Chargeback Calculator</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one centered work column; input panel beside a sticky receipt on wide screens, stacked on phones. */
+:root {
+  --bg: #f3f6f9;
+  --surface: #ffffff;
+  --fg: #142234;
+  --muted: #56677a;
+  --line: #d7e0e9;
+  --accent: #003f6f;
+  --accent-soft: #e2ecf5;
+  --brand: #003f6f;
+  --on-brand: #ffffff;
+  --on-brand-muted: #b9cde0;
+  --warn: #9a5b00;
+  --warn-soft: #fbf0dd;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c1622; --surface: #13212f; --fg: #e5edf5; --muted: #93a5b8; --line: #26384a;
+    --accent: #8cbde3; --accent-soft: #16304a; --brand: #003f6f; --on-brand: #ffffff; --on-brand-muted: #b9cde0;
+    --warn: #f0b45a; --warn-soft: #3a2c14;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0c1622; --surface: #13212f; --fg: #e5edf5; --muted: #93a5b8; --line: #26384a;
+  --accent: #8cbde3; --accent-soft: #16304a; --brand: #003f6f; --on-brand: #ffffff; --on-brand-muted: #b9cde0;
+  --warn: #f0b45a; --warn-soft: #3a2c14;
+  color-scheme: dark;
+}
+.brandbar { background: var(--brand); color: var(--on-brand); border-radius: 10px; padding: 22px 24px; display: grid; gap: 14px; }
+.wordmark { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.wordmark .name { font-size: 0.82rem; letter-spacing: 0.16em; text-transform: uppercase; font-weight: 600; }
+.wordmark .rule { width: 1px; height: 16px; background: var(--on-brand-muted); opacity: 0.6; }
+.wordmark .dept { font-size: 0.82rem; color: var(--on-brand-muted); letter-spacing: 0.04em; }
+.brandbar h1 { font-size: 1.7rem; font-weight: 600; margin: 0; text-wrap: balance; color: var(--on-brand); }
+.brandbar p { margin: 0; color: var(--on-brand-muted); max-width: 65ch; }
+footer { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: 14px; }
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--font-body);
+  font-size: 15px; line-height: 1.5;
+  padding-block: 32px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1080px; margin: 0 auto; display: grid; gap: 24px; }
+header h1 { font-size: 1.6rem; font-weight: 600; margin: 0 0 4px; text-wrap: balance; }
+header p { margin: 0; color: var(--muted); max-width: 65ch; }
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 380px); gap: 24px; align-items: start; }
+@media (max-width: 860px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: grid; gap: 14px; min-width: 0; }
+.panel h2 { font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 0; font-weight: 600; }
+.panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.allow { font-family: var(--font-data); font-size: 0.85rem; color: var(--muted); }
+.inputs { display: grid; gap: 24px; }
+.row { display: grid; grid-template-columns: minmax(0, 1fr) 120px; gap: 12px; align-items: center; padding-block: 8px; border-top: 1px solid var(--line); }
+.row:first-of-type { border-top: 0; }
+.row label { display: grid; gap: 2px; min-width: 0; }
+.tier { font-weight: 500; }
+.meta { font-size: 0.82rem; color: var(--muted); }
+.chip { display: inline-block; font-size: 0.72rem; padding: 1px 7px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); margin-left: 6px; vertical-align: 1px; white-space: nowrap; }
+.chip.warn { background: var(--warn-soft); color: var(--warn); }
+.num { position: relative; }
+.num input {
+  width: 100%; font: 500 1rem var(--font-data); text-align: right; padding: 8px 34px 8px 10px;
+  border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg);
+  font-variant-numeric: tabular-nums;
+}
+.num input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+.num span { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font: 0.8rem var(--font-data); color: var(--muted); pointer-events: none; }
+.subtotal { display: flex; justify-content: space-between; font-family: var(--font-data); font-size: 0.88rem; color: var(--muted); padding-top: 8px; border-top: 1px dashed var(--line); font-variant-numeric: tabular-nums; }
+.receipt { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); }
+.total { display: grid; gap: 2px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.total .big { font: 500 2.2rem var(--font-data); color: var(--accent); font-variant-numeric: tabular-nums; line-height: 1.1; }
+.total .yr { font-family: var(--font-data); color: var(--muted); font-size: 0.9rem; }
+.lines { display: grid; gap: 6px; font-family: var(--font-data); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+.lines .l { display: flex; justify-content: space-between; gap: 12px; }
+.lines .l span:first-child { color: var(--muted); min-width: 0; }
+.lines .group { font-family: var(--font-body); font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-top: 8px; font-weight: 600; }
+.empty { color: var(--muted); font-family: var(--font-body); font-size: 0.85rem; }
+.note { font-size: 0.82rem; color: var(--muted); margin: 0; }
+.pending { background: var(--warn-soft); color: var(--warn); border-radius: 6px; padding: 8px 10px; font-size: 0.82rem; }
+.btns { display: flex; gap: 8px; flex-wrap: wrap; }
+button {
+  font: 500 0.85rem var(--font-body); padding: 7px 12px; border-radius: 6px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--surface); color: var(--fg);
+}
+button:hover { border-color: var(--accent); color: var(--accent); }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.banner { font-size: 0.82rem; color: var(--muted); }
+.banner strong { color: var(--fg); font-weight: 500; }
+</style>
+<style>
+body { margin: 0; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="brandbar">
+    <div class="wordmark"><span class="name">The Wistar Institute</span><span class="rule" aria-hidden="true"></span><span class="dept">Information Technology</span></div>
+    <h1>Storage Chargeback Calculator</h1>
+    <p>Enter a lab or core's usage in TB to see its monthly chargeback. Allowances and rates follow the Wistar Data Storage Policy.</p>
+  </header>
+
+  <div class="btns" role="group" aria-label="Load an example">
+    <span class="banner" id="loaded"><strong>Showing:</strong> Example D from the policy (sample figures)</span>
+  </div>
+  <div class="btns">
+    <button type="button" data-ex="d">Example D: spans tiers</button>
+    <button type="button" data-ex="c">Example C: multiple tiers</button>
+    <button type="button" data-ex="g">Example G: within allowance</button>
+    <button type="button" data-ex="clear">Clear all</button>
+  </div>
+
+  <div class="layout">
+    <div class="inputs">
+      <section class="panel" aria-labelledby="h-active">
+        <div class="panel-head"><h2 id="h-active">Active storage</h2><span class="allow">50 TB included</span></div>
+        <div id="active-rows"></div>
+        <div class="subtotal"><span id="active-used">0 TB used</span><span id="active-over">0 TB over</span></div>
+      </section>
+
+      <section class="panel" aria-labelledby="h-archive">
+        <div class="panel-head"><h2 id="h-archive">Archive storage</h2><span class="allow">200 TB included</span></div>
+        <div id="archive-rows"></div>
+        <div class="subtotal"><span id="archive-used">0 TB used</span><span id="archive-over">0 TB over</span></div>
+      </section>
+
+      <section class="panel" aria-labelledby="h-retr">
+        <div class="panel-head"><h2 id="h-retr">Archive retrieval (one-time)</h2><span class="allow">Every TB retrieved</span></div>
+        <div id="retr-rows"></div>
+        <p class="note">Approximate, based on current cloud-provider list prices, which can change. Most of the cost is data transfer back to Wistar (about $92 per TB).</p>
+      </section>
+    </div>
+
+    <aside class="panel receipt" aria-live="polite" aria-labelledby="h-sum">
+      <h2 id="h-sum">Monthly storage chargeback</h2>
+      <div class="total">
+        <span class="big" id="total">$0.00</span>
+        <span class="yr" id="yearly">$0.00 per year</span>
+      </div>
+      <div class="lines" id="lines"></div>
+      <div id="retr-sum"></div>
+      <p class="note">Billable usage is charged to the least expensive tier in use first, so the allowance covers the more expensive tiers.</p>
+    </aside>
+  </div>
+
+  <footer>
+    <span>The Wistar Institute · Data Storage Policy and Chargeback Model</span>
+    <span>Estimates only. Questions: Wistar Help Center</span>
+  </footer>
+</div>
+
+<script>
+// PRICES!
+const ACTIVE = { allowance: 50, tiers: [
+  { id: "fast",   name: "Fast",            rate: 36.50, chip: "IT approval" },
+  { id: "mixed",  name: "Mixed",           rate: 22.31, chip: "Default" },
+  { id: "slow",   name: "Slow",            rate: 15.00, chip: "IT approval" },
+  { id: "nonrep", name: "Non-replicating", rate: 27.50, chip: "IT approval · not backed up", warn: true },
+]};
+const ARCHIVE = { allowance: 200, tiers: [
+  { id: "ir",   name: "Glacier Instant Retrieval", rate: 4.10 },
+  { id: "deep", name: "Deep Glacier",              rate: 1.10 },
+]};
+const RETRIEVAL = [
+  { id: "r_ir",   name: "Glacier IR",               rate: 123, time: "Immediately" },
+  { id: "r_std",  name: "Deep Glacier – Standard",  rate: 113, time: "Within 12 hours" },
+  { id: "r_bulk", name: "Deep Glacier – Bulk",      rate: 95,  time: "Within 48 hours" },
+];
+const EXAMPLES = {
+  d: { label: "Example D from the policy (sample figures)", v: { mixed: 40, slow: 5, fast: 20 } },
+  c: { label: "Example C from the policy (sample figures)", v: { mixed: 30, slow: 20, fast: 10 } },
+  g: { label: "Example G from the policy (sample figures)", v: { mixed: 40, deep: 150 } },
+  clear: { label: "Your figures", v: {} },
+};
+
+// Allowance covers the most expensive tiers; the excess is billed from the cheapest tier in use upward.
+function allocate(group, usage) {
+  const total = group.tiers.reduce((s, t) => s + (usage[t.id] || 0), 0);
+  let remaining = Math.max(0, total - group.allowance);
+  const over = remaining;
+  const lines = [];
+  for (const t of [...group.tiers].sort((a, b) => a.rate - b.rate)) {
+    const used = usage[t.id] || 0;
+    if (!used || remaining <= 0) continue;
+    const tb = Math.min(used, remaining);
+    remaining -= tb;
+    lines.push({ name: t.name, tb, rate: t.rate, cost: round2(tb * t.rate) });
+  }
+  return { total, over, lines, cost: round2(lines.reduce((s, l) => s + l.cost, 0)) };
+}
+const round2 = n => Math.round(n * 100) / 100;
+const usd = n => n.toLocaleString("en-US", { style: "currency", currency: "USD" });
+const tb = n => (Math.round(n * 100) / 100).toLocaleString("en-US") + " TB";
+
+function rowHTML(t, extra) {
+  const chip = t.chip ? `<span class="chip${t.warn ? " warn" : ""}">${t.chip}</span>` : "";
+  return `<div class="row">
+    <label for="in-${t.id}"><span class="tier">${t.name}${chip}</span><span class="meta">${extra}</span></label>
+    <div class="num"><input id="in-${t.id}" type="number" inputmode="decimal" min="0" step="any" value="0"><span>TB</span></div>
+  </div>`;
+}
+document.getElementById("active-rows").innerHTML = ACTIVE.tiers.map(t => rowHTML(t, usd(t.rate) + " per TB per month above allowance")).join("");
+document.getElementById("archive-rows").innerHTML = ARCHIVE.tiers.map(t => rowHTML(t, usd(t.rate) + " per TB per month above allowance")).join("");
+document.getElementById("retr-rows").innerHTML = RETRIEVAL.map(t => rowHTML(t, "≈ " + usd(t.rate) + " per TB · " + t.time)).join("");
+
+const val = id => { const n = parseFloat(document.getElementById("in-" + id).value); return isFinite(n) && n > 0 ? n : 0; };
+
+function render() {
+  const usage = {};
+  [...ACTIVE.tiers, ...ARCHIVE.tiers].forEach(t => usage[t.id] = val(t.id));
+  const a = allocate(ACTIVE, usage), r = allocate(ARCHIVE, usage);
+  const monthly = round2(a.cost + r.cost);
+
+  document.getElementById("active-used").textContent = tb(a.total) + " used";
+  document.getElementById("active-over").textContent = tb(a.over) + " over";
+  document.getElementById("archive-used").textContent = tb(r.total) + " used";
+  document.getElementById("archive-over").textContent = tb(r.over) + " over";
+  document.getElementById("total").textContent = usd(monthly);
+  document.getElementById("yearly").textContent = usd(round2(monthly * 12)) + " per year";
+
+  const part = (title, res) => {
+    let h = `<div class="group">${title}</div>`;
+    if (!res.lines.length) return h + `<div class="empty">Within allowance · $0.00</div>`;
+    return h + res.lines.map(l => `<div class="l"><span>${tb(l.tb)} ${l.name} × ${usd(l.rate)}</span><span>${usd(l.cost)}</span></div>`).join("");
+  };
+  document.getElementById("lines").innerHTML = part("Active", a) + part("Archive", r);
+
+  const rl = RETRIEVAL.map(t => ({ ...t, tb: val(t.id) })).filter(t => t.tb > 0);
+  const rTotal = rl.reduce((s, t) => s + t.tb * t.rate, 0);
+  document.getElementById("retr-sum").innerHTML = rl.length
+    ? `<div class="lines"><div class="group">One-time retrieval</div>${rl.map(t => `<div class="l"><span>${tb(t.tb)} ${t.name} × ≈${usd(t.rate)}</span><span>≈ ${usd(t.tb * t.rate)}</span></div>`).join("")}
+       <div class="l"><span>Retrieval total</span><span>≈ ${usd(rTotal)}</span></div></div>
+       <p class="pending" style="margin-top:10px">Policy decision pending: whether retrieval costs are charged to the lab or core or covered by IT.</p>`
+    : "";
+}
+
+function load(key) {
+  const ex = EXAMPLES[key];
+  [...ACTIVE.tiers, ...ARCHIVE.tiers, ...RETRIEVAL].forEach(t => document.getElementById("in-" + t.id).value = ex.v[t.id] || 0);
+  document.getElementById("loaded").innerHTML = "<strong>Showing:</strong> " + ex.label;
+  render();
+}
+document.querySelectorAll("[data-ex]").forEach(b => b.addEventListener("click", () => load(b.dataset.ex)));
+document.addEventListener("input", e => {
+  if (e.target.matches(".num input")) {
+    document.getElementById("loaded").innerHTML = "<strong>Showing:</strong> Your figures";
+    render();
+  }
+});
+load("d");
+</script>
+</body>
+</html>
+

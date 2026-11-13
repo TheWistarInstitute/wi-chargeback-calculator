@@ -128,13 +128,13 @@ body { margin: 0; }
   <div class="layout">
     <div class="inputs">
       <section class="panel" aria-labelledby="h-active">
-        <div class="panel-head"><h2 id="h-active">Active storage</h2><span class="allow">50 TB included</span></div>
+        <div class="panel-head"><h2 id="h-active">Active storage</h2><span class="allow" id="active-allow">50 TB included</span></div>
         <div id="active-rows"></div>
         <div class="subtotal"><span id="active-used">0 TB used</span><span id="active-over">0 TB over</span></div>
       </section>
 
       <section class="panel" aria-labelledby="h-archive">
-        <div class="panel-head"><h2 id="h-archive">Archive storage</h2><span class="allow">200 TB included</span></div>
+        <div class="panel-head"><h2 id="h-archive">Archive storage</h2><span class="allow" id="archive-allow">200 TB included</span></div>
         <div id="archive-rows"></div>
         <div class="subtotal"><span id="archive-used">0 TB used</span><span id="archive-over">0 TB over</span></div>
       </section>
@@ -214,6 +214,8 @@ function rowHTML(t, extra) {
     <div class="num"><input id="in-${t.id}" type="number" inputmode="decimal" min="0" step="any" value="0"><span>TB</span></div>
   </div>`;
 }
+document.getElementById("active-allow").textContent = ACTIVE.allowance + " TB included";
+document.getElementById("archive-allow").textContent = ARCHIVE.allowance + " TB included";
 document.getElementById("active-rows").innerHTML = ACTIVE.tiers.map(t => rowHTML(t, usd(t.rate) + " per TB per month above allowance")).join("");
 document.getElementById("archive-rows").innerHTML = ARCHIVE.tiers.map(t => rowHTML(t, usd(t.rate) + " per TB per month above allowance")).join("");
 document.getElementById("retr-rows").innerHTML = RETRIEVAL.map(t => rowHTML(t, "≈ " + usd(t.rate) + " per TB · " + t.time)).join("");

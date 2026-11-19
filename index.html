@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Merriweather:wght@700;900&family=Merriweather+Sans:wght@400;500;600;700&display=swap">
 <style>
-/* Layout: full-width brand bands (utility bar, white logo header, navy hero, footer) around a centered work area; inputs beside a sticky total on wide screens, stacked on phones. */
+/* Layout: full-width brand bands (white logo header, navy hero) above a centered work area; inputs beside a sticky total on wide screens, stacked on phones. */
 :root {
   --navy: #003f6f;
   --navy-deep: #00335b;
@@ -51,9 +51,6 @@ body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--fo
 }
 
 /* Brand bands */
-.utility { background: var(--navy); color: var(--on-navy); font-size: 0.8rem; font-weight: 600; }
-.utility .inner { display: flex; justify-content: flex-end; gap: 20px; padding-block: 8px; flex-wrap: wrap; }
-.utility span + span { border-left: 1px solid var(--on-navy-muted); padding-left: 20px; }
 .site-header { background: var(--header-bg); border-bottom: 1px solid #d9e1ea; }
 .site-header .inner { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 14px; flex-wrap: wrap; }
 .site-header img { display: block; height: 52px; width: auto; max-width: 100%; }
@@ -73,12 +70,9 @@ body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--fo
 .hero button:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
 .banner { font-size: 0.82rem; color: var(--on-navy-muted); }
 .banner strong { color: var(--on-navy); font-weight: 700; }
-.site-footer { background: var(--navy); color: var(--on-navy-muted); font-size: 0.8rem; margin-top: 40px; }
-.site-footer .inner { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding-block: 18px; }
-.site-footer strong { color: var(--on-navy); }
 
 /* Calculator */
-main .inner { padding-block: 28px 0; }
+main .inner { padding-block: 28px 40px; }
 .layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 380px); gap: 24px; align-items: start; }
 @media (max-width: 860px) { .layout { grid-template-columns: minmax(0, 1fr); } }
 .inputs { display: grid; gap: 24px; }
@@ -118,8 +112,6 @@ main .inner { padding-block: 28px 0; }
 </style>
 </head>
 <body>
-<div class="utility"><div class="inner"><span>Information Technology</span><span>Wistar Help Center</span></div></div>
-
 <header class="site-header">
   <div class="inner">
     <img src="assets/wistar-logo.png" alt="The Wistar Institute" width="710" height="280">
@@ -178,12 +170,6 @@ main .inner { padding-block: 28px 0; }
   </div>
 </main>
 
-<footer class="site-footer">
-  <div class="inner">
-    <span><strong>The Wistar Institute</strong> · Data Storage Policy and Chargeback Model</span>
-    <span>Estimates only. Questions: Wistar Help Center</span>
-  </div>
-</footer>
 
 <script>
 // PRICES!

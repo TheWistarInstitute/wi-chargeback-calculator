@@ -1,7 +1,7 @@
 # Wistar Storage Chargeback Calculator
 
-Single-file calculator (`index.html`) for the Wistar Data Storage Policy.
-Hosted on GitHub Pages; pushing to `main` updates the live site.
+Calculator for the Wistar Data Storage Policy: `index.html` plus the logo in
+`assets/`. Hosted on GitHub Pages; pushing to `main` updates the live site.
 
 ## Change prices or allowances
 

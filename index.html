@@ -54,8 +54,8 @@ body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--fo
   border: 2px solid var(--on-navy); background: transparent; color: var(--on-navy);
 }
 .hero button:hover { background: var(--on-navy); color: var(--navy-deep); }
-.hero button.primary { background: var(--orange); border-color: var(--orange); color: #ffffff; }
-.hero button.primary:hover { background: var(--orange-hover); border-color: var(--orange-hover); color: #ffffff; }
+.hero button[aria-pressed="true"] { background: var(--orange); border-color: var(--orange); color: #ffffff; }
+.hero button[aria-pressed="true"]:hover { background: var(--orange-hover); border-color: var(--orange-hover); color: #ffffff; }
 .hero button:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
 .banner { font-size: 0.82rem; color: var(--on-navy-muted); }
 .banner strong { color: var(--on-navy); font-weight: 700; }
@@ -112,12 +112,12 @@ main .inner { padding-block: 28px 40px; }
     <h1>Storage Chargeback Calculator</h1>
     <p>Enter a lab or core's usage in TB to see its monthly chargeback. Allowances and rates follow the Wistar Data Storage Policy. Please note that prices and allowances are subject to change.</p>
     <div class="btns" role="group" aria-label="Load an example">
-      <button type="button" class="primary" data-ex="d">Example D: spans tiers</button>
-      <button type="button" data-ex="c">Example C: multiple tiers</button>
-      <button type="button" data-ex="g">Example G: within allowance</button>
+      <button type="button" data-ex="1" aria-pressed="true">Example 1: spans tiers</button>
+      <button type="button" data-ex="2" aria-pressed="false">Example 2: multiple tiers</button>
+      <button type="button" data-ex="3" aria-pressed="false">Example 3: within allowance</button>
       <button type="button" data-ex="clear">Clear all</button>
     </div>
-    <span class="banner" id="loaded"><strong>Showing:</strong> Example D from the policy (sample figures)</span>
+    <span class="banner" id="loaded"><strong>Showing:</strong> Example 1 (sample figures)</span>
   </div>
 </section>
 
@@ -177,9 +177,9 @@ const RETRIEVAL = [
   { id: "r_bulk", name: "Deep Glacier - Bulk",      rate: 95,  time: "Within 48 hours" },
 ];
 const EXAMPLES = {
-  d: { label: "Example D from the policy (sample figures)", v: { mixed: 40, slow: 5, fast: 20 } },
-  c: { label: "Example C from the policy (sample figures)", v: { mixed: 30, slow: 20, fast: 10 } },
-  g: { label: "Example G from the policy (sample figures)", v: { mixed: 40, deep: 150 } },
+  1: { label: "Example 1 (sample figures)", v: { mixed: 40, slow: 5, fast: 20 } },
+  2: { label: "Example 2 (sample figures)", v: { mixed: 30, slow: 20, fast: 10 } },
+  3: { label: "Example 3 (sample figures)", v: { mixed: 40, deep: 150 } },
   clear: { label: "Your figures", v: {} },
 };
 
@@ -250,16 +250,25 @@ function load(key) {
   const ex = EXAMPLES[key];
   [...ACTIVE.tiers, ...ARCHIVE.tiers, ...RETRIEVAL].forEach(t => document.getElementById("in-" + t.id).value = ex.v[t.id] || 0);
   document.getElementById("loaded").innerHTML = "<strong>Showing:</strong> " + ex.label;
+  highlight(key);
   render();
+}
+// Highlight the example that is loaded; Clear all and typed figures highlight none.
+function highlight(key) {
+  document.querySelectorAll("[data-ex]:not([data-ex=\"clear\"])").forEach(b => {
+    const on = b.dataset.ex === key && key !== "clear";
+    b.setAttribute("aria-pressed", on ? "true" : "false");
+  });
 }
 document.querySelectorAll("[data-ex]").forEach(b => b.addEventListener("click", () => load(b.dataset.ex)));
 document.addEventListener("input", e => {
   if (e.target.matches(".num input")) {
     document.getElementById("loaded").innerHTML = "<strong>Showing:</strong> Your figures";
+    highlight(null);
     render();
   }
 });
-load("d");
+load("1");
 </script>
 </body>
 </html>

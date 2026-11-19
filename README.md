@@ -27,7 +27,7 @@ update it.
 
 ## Test
 
-Open `index.html` in a browser and click **Example D**. At current rates it
+Open `index.html` in a browser and click **Example 1**. At current rates it
 shows **$298.10/month**.
 
 ## Publish

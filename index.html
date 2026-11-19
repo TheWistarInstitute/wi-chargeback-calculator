@@ -95,6 +95,13 @@ main .inner { padding-block: 28px 40px; }
 .lines .l span:last-child { font-weight: 700; }
 .lines .group { font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-top: 8px; font-weight: 700; }
 .empty { color: var(--muted); font-size: 0.85rem; }
+.split { display: grid; gap: 2px; margin-top: 8px; font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+.split div { display: flex; justify-content: space-between; gap: 12px; color: var(--muted); }
+.split b { color: var(--fg); }
+.lines .l.credit span:last-child { color: #1f7a3d; }
+.lines .l.sub { border-top: 1px dashed var(--line); padding-top: 6px; }
+.lines .l.sub span { color: var(--fg); font-weight: 700; }
+.lines .billed { font-size: 0.78rem; color: var(--muted); }
 .note { font-size: 0.8rem; color: var(--muted); margin: 0; }
 .pending { background: var(--warn-soft); color: var(--warn); border-radius: 3px; padding: 8px 10px; font-size: 0.8rem; font-weight: 600; }
 @media (prefers-reduced-motion: no-preference) { .hero button, .num input { transition: background-color .15s, color .15s, border-color .15s; } }
@@ -112,9 +119,10 @@ main .inner { padding-block: 28px 40px; }
     <h1>Storage Chargeback Calculator</h1>
     <p>Enter a lab or core's usage in TB to see its monthly chargeback. Allowances and rates follow the Wistar Data Storage Policy. Please note that prices and allowances are subject to change.</p>
     <div class="btns" role="group" aria-label="Load an example">
-      <button type="button" data-ex="1" aria-pressed="true">Example 1: spans tiers</button>
-      <button type="button" data-ex="2" aria-pressed="false">Example 2: multiple tiers</button>
-      <button type="button" data-ex="3" aria-pressed="false">Example 3: within allowance</button>
+      <button type="button" data-ex="1" aria-pressed="true">Example 1: Mixed over allowance</button>
+      <button type="button" data-ex="2" aria-pressed="false">Example 2: multiple active tiers</button>
+      <button type="button" data-ex="3" aria-pressed="false">Example 3: active and archive</button>
+      <button type="button" data-ex="4" aria-pressed="false">Example 4: within allowance</button>
       <button type="button" data-ex="clear">Clear all</button>
     </div>
     <span class="banner" id="loaded"><strong>Showing:</strong> Example 1 (sample figures)</span>
@@ -149,6 +157,7 @@ main .inner { padding-block: 28px 40px; }
         <div class="total">
           <span class="big" id="total">$0.00</span>
           <span class="yr" id="yearly">$0.00 per year</span>
+          <div class="split" id="split"></div>
         </div>
         <div class="lines" id="lines"></div>
         <div id="retr-sum"></div>
@@ -164,7 +173,6 @@ main .inner { padding-block: 28px 40px; }
 const ACTIVE = { allowance: 50, tiers: [
   { id: "fast",   name: "Fast",            rate: 36.50, chip: "IT approval" },
   { id: "mixed",  name: "Mixed",           rate: 22.31, chip: "Default" },
-  { id: "slow",   name: "Slow",            rate: 15.00, chip: "IT approval" },
   { id: "nonrep", name: "Non-replicating", rate: 27.50, chip: "IT approval · not backed up", warn: true },
 ]};
 const ARCHIVE = { allowance: 200, tiers: [
@@ -177,9 +185,10 @@ const RETRIEVAL = [
   { id: "r_bulk", name: "Deep Glacier - Bulk",      rate: 95,  time: "Within 48 hours" },
 ];
 const EXAMPLES = {
-  1: { label: "Example 1 (sample figures)", v: { mixed: 40, slow: 5, fast: 20 } },
-  2: { label: "Example 2 (sample figures)", v: { mixed: 30, slow: 20, fast: 10 } },
-  3: { label: "Example 3 (sample figures)", v: { mixed: 40, deep: 150 } },
+  1: { label: "Example 1 (sample figures)", v: { mixed: 60 } },
+  2: { label: "Example 2 (sample figures)", v: { mixed: 40, nonrep: 20 } },
+  3: { label: "Example 3 (sample figures)", v: { mixed: 40, nonrep: 20, ir: 100, deep: 115 } },
+  4: { label: "Example 4 (sample figures)", v: { mixed: 40, ir: 100, deep: 50 } },
   clear: { label: "Your figures", v: {} },
 };
 
@@ -196,7 +205,10 @@ function allocate(group, usage) {
     remaining -= tb;
     lines.push({ name: t.name, tb, rate: t.rate, cost: round2(tb * t.rate) });
   }
-  return { total, over, lines, cost: round2(lines.reduce((s, l) => s + l.cost, 0)) };
+  const full = group.tiers.filter(t => usage[t.id]).map(t => ({ name: t.name, tb: usage[t.id], rate: t.rate, cost: round2(usage[t.id] * t.rate) }));
+  const fullCost = round2(full.reduce((s, l) => s + l.cost, 0));
+  const cost = round2(lines.reduce((s, l) => s + l.cost, 0));
+  return { total, over, lines, cost, full, fullCost, credit: round2(fullCost - cost) };
 }
 const round2 = n => Math.round(n * 100) / 100;
 const usd = n => n.toLocaleString("en-US", { style: "currency", currency: "USD" });
@@ -229,13 +241,22 @@ function render() {
   document.getElementById("archive-over").textContent = tb(r.over) + " over";
   document.getElementById("total").textContent = usd(monthly);
   document.getElementById("yearly").textContent = usd(round2(monthly * 12)) + " per year";
+  const fullAll = round2(a.fullCost + r.fullCost), creditAll = round2(a.credit + r.credit);
+  document.getElementById("split").innerHTML = fullAll
+    ? `<div><span>Full price</span><b>${usd(fullAll)}</b></div><div><span>Allowance credit</span><b>−${usd(creditAll)}</b></div>`
+    : "";
 
-  const part = (title, res) => {
+  // Each group: full price per tier, minus the allowance credit, equals the charge.
+  const part = (title, res, group) => {
     let h = `<div class="group">${title}</div>`;
-    if (!res.lines.length) return h + `<div class="empty">Within allowance · $0.00</div>`;
-    return h + res.lines.map(l => `<div class="l"><span>${tb(l.tb)} ${l.name} × ${usd(l.rate)}</span><span>${usd(l.cost)}</span></div>`).join("");
+    if (!res.full.length) return h + `<div class="empty">No usage · $0.00</div>`;
+    h += res.full.map(l => `<div class="l"><span>${tb(l.tb)} ${l.name} × ${usd(l.rate)}</span><span>${usd(l.cost)}</span></div>`).join("");
+    h += `<div class="l credit"><span>${group.allowance} TB allowance credit</span><span>−${usd(res.credit)}</span></div>`;
+    h += `<div class="l sub"><span>${title} after credit</span><span>${usd(res.cost)}</span></div>`;
+    if (res.lines.length) h += `<div class="billed">Billed as ${res.lines.map(l => `${tb(l.tb)} ${l.name}`).join(" + ")}</div>`;
+    return h;
   };
-  document.getElementById("lines").innerHTML = part("Active", a) + part("Archive", r);
+  document.getElementById("lines").innerHTML = part("Active", a, ACTIVE) + part("Archive", r, ARCHIVE);
 
   const rl = RETRIEVAL.map(t => ({ ...t, tb: val(t.id) })).filter(t => t.tb > 0);
   const rTotal = rl.reduce((s, t) => s + t.tb * t.rate, 0);
